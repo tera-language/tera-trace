@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>TeraTrace Local</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        /* Purple Theme Palette */
+        --bg-base: #0a0812;
+        --bg-grid: #1a162d;
+        --panel-bg: rgba(18, 14, 34, 0.98);
+        --panel-border: #9d7df533;
+        --accent: #9d7df5;
+        --accent-bright: #bc9aff;
+        --accent-glow: rgba(157, 125, 245, 0.4);
+        --text-main: #b4acc9;
+
+        /* Status Colors */
+        --info: #7dcfff;
+        --warn: #ff9e64;
+        --error: #ff007c;
+        --debug: #9ece6a;
+
+        --grid-size: 20px;
+        --topbar-h: 54px;
+      }
+
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: var(--bg-base);
+        background-image: linear-gradient(
+            to right,
+            var(--bg-grid) 1px,
+            transparent 1px
+          ),
+          linear-gradient(to bottom, var(--bg-grid) 1px, transparent 1px);
+        background-size: var(--grid-size) var(--grid-size);
+        color: var(--text-main);
+        font-family: "Inter", sans-serif;
+        height: 100vh;
+        overflow: hidden;
+      }
+
+      /* Topbar Branding */
+      #topbar {
+        height: var(--topbar-h);
+        background: rgba(12, 10, 24, 0.95);
+        border-bottom: 1px solid var(--panel-border);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        backdrop-filter: blur(12px);
+        position: relative;
+        z-index: 10000;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+      }
+      .logo-sq {
+        width: 28px;
+        height: 28px;
+        background: linear-gradient(
+          135deg,
+          var(--accent),
+          var(--accent-bright)
+        );
+        border-radius: 6px;
+        display: grid;
+        place-items: center;
+        color: #000;
+        font-weight: 900;
+        font-size: 16px;
+        box-shadow: 0 0 15px var(--accent-glow);
+      }
+      .brand-text {
+        font-weight: 800;
+        letter-spacing: 2.5px;
+        color: #fff;
+        font-size: 15px;
+      }
+      .status-pill {
+        background: rgba(255, 255, 255, 0.03);
+        padding: 5px 14px;
+        border-radius: 20px;
+        font-size: 10px;
+        border: 1px solid var(--panel-border);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #fff;
+      }
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--warn);
+        box-shadow: 0 0 10px var(--warn);
+        transition: 0.3s;
+      }
+      .dot.online {
+        background: var(--debug);
+        box-shadow: 0 0 10px var(--debug);
+      }
+
+      #workspace {
+        position: relative;
+        width: 100vw;
+        height: calc(100vh - var(--topbar-h));
+      }
+
+      /* Panel Components */
+      .component {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        background: var(--panel-bg);
+        border: 1px solid var(--panel-border);
+        border-radius: 10px;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
+        overflow: hidden;
+        backdrop-filter: blur(16px);
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+
+      .component.moving {
+        opacity: 0.9;
+        border-color: var(--accent-bright);
+        z-index: 9999 !important;
+        box-shadow: 0 20px 60px rgba(157, 125, 245, 0.2);
+      }
+      .component.invalid {
+        border-color: var(--error);
+        box-shadow: 0 0 25px rgba(255, 0, 124, 0.3);
+      }
+
+      .comp-header {
+        padding: 12px 16px;
+        background: rgba(157, 125, 245, 0.08);
+        border-bottom: 1px solid var(--panel-border);
+        cursor: grab;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .comp-title {
+        font-size: 10px;
+        font-weight: 800;
+        color: var(--accent-bright);
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+
+      .comp-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        padding: 14px;
+      }
+
+      /* Logs & Data */
+      #logContainer {
+        flex: 1;
+        overflow-y: auto;
+        font-family: "Fira Code", monospace;
+        font-size: 12px;
+      }
+      .log-line {
+        padding: 7px 12px;
+        border-bottom: 1px solid rgba(157, 125, 245, 0.05);
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        transition: background 0.2s;
+      }
+      .log-line:hover {
+        background: rgba(157, 125, 245, 0.05);
+      }
+      .INFO {
+        border-left-color: var(--info);
+      }
+      .WARN {
+        border-left-color: var(--warn);
+      }
+      .ERROR {
+        border-left-color: var(--error);
+        background: rgba(255, 0, 124, 0.04);
+      }
+
+      .metadata {
+        display: none;
+        background: #08060d;
+        padding: 12px;
+        margin: 8px 0;
+        border-radius: 6px;
+        font-size: 11px;
+        border: 1px solid var(--panel-border);
+        color: #8e86a0;
+        line-height: 1.6;
+      }
+      .expanded .metadata {
+        display: block;
+      }
+
+      .toolbar {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 14px;
+      }
+      input,
+      select,
+      button {
+        background: #141120;
+        border: 1px solid var(--panel-border);
+        color: #fff;
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: 11px;
+        outline: none;
+        transition: 0.2s;
+      }
+      input:focus,
+      select:focus {
+        border-color: var(--accent);
+      }
+      button {
+        cursor: pointer;
+        border: 1px solid var(--accent);
+        color: var(--accent);
+        font-weight: bold;
+        background: transparent;
+      }
+      button:hover {
+        background: var(--accent);
+        color: #000;
+        box-shadow: 0 0 10px var(--accent-glow);
+      }
+
+      .service-item {
+        padding: 12px;
+        margin-bottom: 6px;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        background: rgba(157, 125, 245, 0.03);
+        font-size: 12px;
+        border: 1px solid transparent;
+      }
+      .service-item:hover {
+        background: rgba(157, 125, 245, 0.08);
+      }
+      .service-item.active {
+        background: rgba(157, 125, 245, 0.15);
+        border-color: var(--accent);
+        color: #fff;
+        font-weight: 700;
+      }
+
+      .resizer {
+        width: 22px;
+        height: 22px;
+        position: absolute;
+        right: 0;
+        bottom: 0;
+        cursor: nwse-resize;
+        background: linear-gradient(
+          135deg,
+          transparent 75%,
+          var(--accent-bright) 75%
+        );
+        opacity: 0.5;
+      }
+
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(157, 125, 245, 0.08);
+        font-size: 11px;
+      }
+      canvas {
+        width: 100%;
+        height: 110px;
+        background: #08060d;
+        border-radius: 6px;
+        margin-top: 10px;
+        border: 1px solid var(--panel-border);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="topbar">
+      <div class="brand">
+        <div class="logo-sq">T</div>
+        <div class="brand-text">
+          TERATRACE
+          <span style="opacity: 0.4; font-weight: 400">Local</span>
+        </div>
+      </div>
+      <div class="status-pill">
+        <div id="global-dot" class="dot"></div>
+        <span id="global-status">SYSTEM OFFLINE</span>
+      </div>
+    </div>
+
+    <div id="workspace"></div>
+
+    <script>
+      const STORAGE_KEY = "teraTrace";
+      const GRID_SIZE = 20;
+      const workspace = document.getElementById("workspace");
+
+      const state = {
+        logs: {},
+        activeService: null,
+        autoScroll: true,
+        highestZ: 100,
+      };
+
+      const constraints = {
+        tree: { minW: 220, minH: 300 },
+        logs: { minW: 450, minH: 300 },
+        stats: { minW: 260, minH: 200 },
+        heatmap: { minW: 260, minH: 220 },
+      };
+
+      const defaultLayout = [
+        {
+          id: "tree-p",
+          type: "tree",
+          x: 20,
+          y: 20,
+          w: 280,
+          h: 600,
+          title: "Services",
+        },
+        {
+          id: "logs-p",
+          type: "logs",
+          x: 320,
+          y: 20,
+          w: 900,
+          h: 720,
+          title: "Terminal Feed",
+        },
+        {
+          id: "stats-p",
+          type: "stats",
+          x: 1240,
+          y: 20,
+          w: 320,
+          h: 260,
+          title: "Analytics",
+        },
+        {
+          id: "heat-p",
+          type: "heatmap",
+          x: 1240,
+          y: 300,
+          w: 320,
+          h: 240,
+          title: "Network Load",
+        },
+      ];
+
+      let layout =
+        JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultLayout;
+      const snap = (v) => Math.round(v / GRID_SIZE) * GRID_SIZE;
+
+      // --- Collision Engine ---
+      function checkOverlap(id, x, y, w, h) {
+        const panels = document.querySelectorAll(".component");
+        for (let p of panels) {
+          if (p.id === id) continue;
+          const r1 = { left: x, top: y, right: x + w, bottom: y + h };
+          const r2 = {
+            left: p.offsetLeft,
+            top: p.offsetTop,
+            right: p.offsetLeft + p.offsetWidth,
+            bottom: p.offsetTop + p.offsetHeight,
+          };
+          if (
+            !(
+              r1.right < r2.left ||
+              r1.left > r2.right ||
+              r1.bottom < r2.top ||
+              r1.top > r2.bottom
+            )
+          )
+            return true;
+        }
+        return false;
+      }
+
+      function createComponent(config) {
+        const comp = document.createElement("div");
+        comp.className = "component";
+        comp.id = config.id;
+        comp.dataset.type = config.type;
+        comp.style.cssText = `left:${config.x}px;top:${config.y}px;width:${config.w}px;height:${config.h}px;z-index:${state.highestZ};`;
+        comp.innerHTML = `
+    <div class="comp-header">
+        <span class="comp-title">${config.title}</span>
+        <span style="font-size:9px; color:var(--accent); opacity:0.6">${config.type.toUpperCase()}</span>
+    </div>
+    <div class="comp-body">
+        ${
+          config.type === "tree"
+            ? '<div id="treeList"></div>'
+            : config.type === "logs"
+            ? `
+            <div class="toolbar">
+                <select id="levelFilter"><option value="">ALL LEVELS</option><option value="INFO">INFO</option><option value="WARN">WARN</option><option value="ERROR">ERROR</option></select>
+                <input type="text" id="searchFilter" placeholder="Filter..." style="flex:1">
+                <button id="clearBtn">PURGE</button>
+            </div>
+            <div id="logContainer"></div>`
+            : config.type === "stats"
+            ? '<div id="statsContent"></div>'
+            : config.type === "heatmap"
+            ? '<canvas id="heatmapCanvas"></canvas>'
+            : ""
+        }
+    </div>
+    <div class="resizer"></div>`;
+        workspace.appendChild(comp);
+        attachInteractions(comp);
+      }
+
+      function attachInteractions(el) {
+        const header = el.querySelector(".comp-header"),
+          resizer = el.querySelector(".resizer");
+        const limit = constraints[el.dataset.type];
+        let oldX, oldY, oldW, oldH;
+
+        el.onmousedown = () => {
+          el.style.zIndex = ++state.highestZ;
+        };
+
+        header.onmousedown = (e) => {
+          if (["BUTTON", "SELECT", "INPUT"].includes(e.target.tagName)) return;
+          el.classList.add("moving");
+          oldX = el.offsetLeft;
+          oldY = el.offsetTop;
+          let startX = e.clientX - el.offsetLeft,
+            startY = e.clientY - el.offsetTop;
+
+          document.onmousemove = (e) => {
+            let newX = e.clientX - startX;
+            let newY = e.clientY - startY;
+            el.style.left = newX + "px";
+            el.style.top = newY + "px";
+            el.classList.toggle(
+              "invalid",
+              checkOverlap(el.id, newX, newY, el.offsetWidth, el.offsetHeight)
+            );
+          };
+
+          document.onmouseup = () => {
+            document.onmousemove = null;
+            el.classList.remove("moving");
+            let finalX = snap(el.offsetLeft),
+              finalY = snap(el.offsetTop);
+            if (
+              checkOverlap(
+                el.id,
+                finalX,
+                finalY,
+                el.offsetWidth,
+                el.offsetHeight
+              )
+            ) {
+              el.style.left = oldX + "px";
+              el.style.top = oldY + "px";
+            } else {
+              el.style.left = finalX + "px";
+              el.style.top = finalY + "px";
+            }
+            el.classList.remove("invalid");
+            saveLayout();
+          };
+        };
+
+        resizer.onmousedown = (e) => {
+          e.preventDefault();
+          el.classList.add("moving");
+          oldW = el.offsetWidth;
+          oldH = el.offsetHeight;
+          let startX = e.clientX,
+            startY = e.clientY;
+
+          document.onmousemove = (e) => {
+            let newW = Math.max(limit.minW, oldW + e.clientX - startX);
+            let newH = Math.max(limit.minH, oldH + e.clientY - startY);
+            el.style.width = newW + "px";
+            el.style.height = newH + "px";
+            el.classList.toggle(
+              "invalid",
+              checkOverlap(el.id, el.offsetLeft, el.offsetTop, newW, newH)
+            );
+          };
+
+          document.onmouseup = () => {
+            document.onmousemove = null;
+            el.classList.remove("moving");
+            let finalW = snap(el.offsetWidth),
+              finalH = snap(el.offsetHeight);
+            if (
+              checkOverlap(el.id, el.offsetLeft, el.offsetTop, finalW, finalH)
+            ) {
+              el.style.width = oldW + "px";
+              el.style.height = oldH + "px";
+            } else {
+              el.style.width = finalW + "px";
+              el.style.height = finalH + "px";
+            }
+            el.classList.remove("invalid");
+            saveLayout();
+          };
+        };
+      }
+
+      function setupWebSocket() {
+        const ws = new WebSocket("ws://localhost:8081/ws");
+        const dot = document.getElementById("global-dot");
+        const statusText = document.getElementById("global-status");
+
+        ws.onopen = () => {
+          dot.classList.add("online");
+          statusText.innerText = "GATEWAY CONNECTED";
+        };
+
+        ws.onmessage = (event) => {
+          const log = JSON.parse(event.data);
+          if (!state.logs[log.Service]) state.logs[log.Service] = [];
+          state.logs[log.Service].push(log);
+          if (state.logs[log.Service].length > 500)
+            state.logs[log.Service].shift();
+          if (!state.activeService) state.activeService = log.Service;
+
+          updateTreeUI();
+          if (state.activeService === log.Service) appendLogUI(log);
+          updateStats();
+          updateHeatmap();
+        };
+
+        ws.onclose = () => {
+          dot.classList.remove("online");
+          statusText.innerText = "GATEWAY DISCONNECTED";
+          setTimeout(setupWebSocket, 3000);
+        };
+      }
+
+      function appendLogUI(log) {
+        const container = document.getElementById("logContainer");
+        if (!container) return;
+        const fLvl = document.getElementById("levelFilter").value;
+        const fSrc = document
+          .getElementById("searchFilter")
+          .value.toLowerCase();
+        if (fLvl && log.Level !== fLvl) return;
+        if (fSrc && !log.Message.toLowerCase().includes(fSrc)) return;
+
+        const div = document.createElement("div");
+        div.className = `log-line ${log.Level}`;
+        div.innerHTML = `<span style="opacity:0.4; font-size:10px">${new Date(
+          log.Timestamp
+        ).toLocaleTimeString()}</span> <b>${log.Level}</b> ${log.Message}
+                     <div class="metadata">TraceID: ${log.TraceID}\nSession: ${
+          log.SessionID
+        }\n${JSON.stringify(log.Metadata, null, 2)}</div>`;
+        div.onclick = () => div.classList.toggle("expanded");
+        container.appendChild(div);
+        if (state.autoScroll) container.scrollTop = container.scrollHeight;
+      }
+
+      function updateTreeUI() {
+        const tree = document.getElementById("treeList");
+        if (!tree) return;
+        tree.innerHTML = Object.keys(state.logs)
+          .map(
+            (s) => `
+        <div class="service-item ${
+          s === state.activeService ? "active" : ""
+        }" onclick="window.setService('${s}')">
+            <span>${s}</span><span style="opacity:0.5">${
+              state.logs[s].length
+            }</span>
+        </div>`
+          )
+          .join("");
+      }
+
+      window.setService = (svc) => {
+        state.activeService = svc;
+        updateTreeUI();
+        const container = document.getElementById("logContainer");
+        if (container) {
+          container.innerHTML = "";
+          (state.logs[svc] || []).forEach(appendLogUI);
+        }
+      };
+
+      function updateStats() {
+        const content = document.getElementById("statsContent");
+        if (!content) return;
+        let html = "";
+        for (let s in state.logs) {
+          const counts = { INFO: 0, WARN: 0, ERROR: 0 };
+          state.logs[s].forEach((l) => counts[l.Level]++);
+          html += `<div class="stat-row"><b>${s}</b><span>I:${counts.INFO} W:${counts.WARN} <span style="color:var(--error)">E:${counts.ERROR}</span></span></div>`;
+        }
+        content.innerHTML = html;
+      }
+
+      function updateHeatmap() {
+        const canvas = document.getElementById("heatmapCanvas");
+        if (!canvas) return;
+        const ctx = canvas.getContext("2d");
+        const logs = Object.values(state.logs).flat().slice(-60);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        logs.forEach((l, i) => {
+          ctx.fillStyle =
+            l.Level === "ERROR"
+              ? "#ff007c"
+              : l.Level === "WARN"
+              ? "#ff9e64"
+              : "#9d7df5";
+          ctx.fillRect(
+            i * 5,
+            canvas.height - (l.Level === "ERROR" ? 40 : 20),
+            3,
+            40
+          );
+        });
+      }
+
+      function saveLayout() {
+        const current = layout.map((item) => {
+          const el = document.getElementById(item.id);
+          return {
+            ...item,
+            x: el.offsetLeft,
+            y: el.offsetTop,
+            w: el.offsetWidth,
+            h: el.offsetHeight,
+          };
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+      }
+
+      function bindEvents() {
+        setTimeout(() => {
+          document.getElementById("levelFilter").onchange = () =>
+            window.setService(state.activeService);
+          document.getElementById("searchFilter").oninput = () =>
+            window.setService(state.activeService);
+          document.getElementById("clearBtn").onclick = () => {
+            if (state.activeService) state.logs[state.activeService] = [];
+            window.setService(state.activeService);
+          };
+          const logBox = document.getElementById("logContainer");
+          if (logBox)
+            logBox.onscroll = () => {
+              state.autoScroll =
+                logBox.scrollHeight - logBox.scrollTop <=
+                logBox.clientHeight + 60;
+            };
+        }, 200);
+      }
+
+      layout.forEach(createComponent);
+      setupWebSocket();
+      bindEvents();
+    </script>
+  </body>
+</html>
