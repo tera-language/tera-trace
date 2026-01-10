@@ -56,15 +56,20 @@ Project Structure
 > ⚠️ **Struture is subject to change**  
 > This structure maybe change as this project is in active development.
 ```
-.
-├── cmd/
-│   └── teratrace/        # Application entry point
-├── pkg/
-│   ├── server/           # HTTP and WebSocket server
-│   ├── ui/               # Embedded web UI
-│   └── terminal/         # Terminal output and banner
-├── assets/               # Frontend UI assets
-└── README.md
+tera-trace/
+├─ cmd/                # Entry points (build targets)
+├─ pkg/
+│  ├─ aggregator/      # Data aggregation logic
+│  ├─ ingestion/       # HTTP & WebSocket ingestion servers
+│  ├─ server/          # Dashboard HTTP server
+│  ├─ storage/         # In-memory storage layer
+│  ├─ terminal/        # Terminal UI / startup banner
+│  ├─ translator/     # Data translation utilities
+│  ├─ ui/              # Embedded web UI assets
+│  └─ utils/           # Logging & helpers
+├─ go.mod
+├─ go.sum
+├─ LICENSE
 ```
 
 ---
