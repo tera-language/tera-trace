@@ -1,0 +1,62 @@
+# =========================
+# Go build artifacts
+# =========================
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go workspace files
+go.work
+go.work.sum
+
+# =========================
+# Build / dist directories
+# =========================
+bin/
+dist/
+build/
+
+# =========================
+# Logs & runtime data
+# =========================
+*.log
+logs/
+*.tmp
+
+# =========================
+# Editor / IDE files
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+
+# =========================
+# OS-specific
+# =========================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# =========================
+# Embedded / generated assets
+# =========================
+pkg/ui/assets/*.map
+
+# =========================
+# Local config overrides
+# =========================
+.env
+.env.local
+.env.*.local
+
+# =========================
+# Misc
+# =========================
+coverage/
+*.prof
