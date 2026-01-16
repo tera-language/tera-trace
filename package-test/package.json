@@ -1,0 +1,23 @@
+{
+  "name": "package-test",
+  "version": "1.0.0",
+  "description": "Integration test for tera-trace-client package",
+  "main": "index.js",
+  "scripts": {
+    "test": "node test-integration.js",
+    "test:http": "node test-http.js",
+    "test:ws": "node test-ws.js",
+    "test:all": "npm run test:http && npm run test:ws && npm run test"
+  },
+  "keywords": [
+    "testing",
+    "integration",
+    "tera-trace"
+  ],
+  "author": "TeraTrace Team",
+  "license": "MIT",
+  "dependencies": {
+    "axios": "^1.13.2",
+    "tera-trace-client": "file:../tera-trace-client"
+  }
+}
