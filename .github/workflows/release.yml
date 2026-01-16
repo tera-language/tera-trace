@@ -102,35 +102,3 @@ jobs:
           ./dist/teratrace-windows-386.exe
           ./dist/teratrace-darwin-amd64
           ./dist/teratrace-darwin-arm64
-
-    - name: Generate changelog
-      id: changelog
-      run: |
-        # Extract tag name without 'v' prefix
-        TAG_NAME=${GITHUB_REF#refs/tags/v}
-        echo "tag_name=v$TAG_NAME" >> $GITHUB_OUTPUT
-        
-        # Generate simple changelog (you can enhance this with a proper changelog tool)
-        echo "changelog<<EOF" >> $GITHUB_OUTPUT
-        echo "## What's Changed" >> $GITHUB_OUTPUT
-        echo "" >> $GITHUB_OUTPUT
-        # Add git log between this tag and previous tag
-        git log --pretty=format:"- %s (%h)" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> $GITHUB_OUTPUT
-        echo "" >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ github.ref_name }}
-        name: Release ${{ github.ref_name }}
-        body: ${{ steps.changelog.outputs.changelog }}
-        draft: false
-        prerelease: false
-        files: |
-          ./dist/teratrace-linux-amd64
-          ./dist/teratrace-linux-arm64
-          ./dist/teratrace-windows-amd64.exe
-          ./dist/teratrace-windows-386.exe
-          ./dist/teratrace-darwin-amd64
-          ./dist/teratrace-darwin-arm64
