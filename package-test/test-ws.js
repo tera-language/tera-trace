@@ -28,7 +28,8 @@ async function testWebSocketTransport() {
     console.log('🔧 Creating WebSocket client...');
     const client = new TeraTraceClient({
       service: 'test-websocket',
-      transport: 'ws'
+      transport: 'ws',
+      autoReconnect: false
     });
 
     // Wait for WebSocket connection to establish
