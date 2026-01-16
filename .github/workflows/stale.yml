@@ -1,0 +1,48 @@
+name: 'Close stale issues and PRs'
+on:
+  schedule:
+    - cron: '30 1 * * *'  # Run daily at 1:30 AM UTC
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/stale@v8
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          
+          # Issues
+          days-before-issue-stale: 60
+          days-before-issue-close: 14
+          stale-issue-message: |
+            This issue has been automatically marked as stale because it has not had recent activity. It will be closed in 14 days if no further activity occurs.
+            
+            If this issue is still relevant, please:
+            - Add a comment to keep it open
+            - Update the issue with new information
+            - Add the `help wanted` or `good first issue` label if you need assistance
+            
+            Thank you for your contribution to TeraTrace!
+          close-issue-message: 'This issue was closed because it has been inactive for 14 days since being marked as stale.'
+          stale-issue-label: 'stale'
+          exempt-issue-labels: 'bug,enhancement,help wanted,good first issue,pinned'
+          
+          # PRs
+          days-before-pr-stale: 30
+          days-before-pr-close: 7
+          stale-pr-message: |
+            This pull request has been automatically marked as stale because it has not had recent activity. It will be closed in 7 days if no further activity occurs.
+            
+            To keep this PR open:
+            - Add a comment explaining the current status
+            - Push new commits to address review feedback
+            - Request a review if it's ready
+            
+            If you need more time, please let us know!
+          close-pr-message: 'This PR was closed because it has been inactive for 7 days since being marked as stale.'
+          stale-pr-label: 'stale'
+          exempt-pr-labels: 'work-in-progress,pinned'

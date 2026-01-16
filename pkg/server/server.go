@@ -9,11 +9,11 @@ import (
 
 func StartServer(addr string) error {
 	mux := http.NewServeMux()
-	
+
 	mux.Handle("/", ui.ServeUI())
 
 	utils.Log(utils.LevelInfo, "GATEWAY", "Initializing TeraTrace UI at "+addr)
-	
+
 	server := &http.Server{
 		Addr:    addr,
 		Handler: mux,

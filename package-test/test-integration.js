@@ -151,7 +151,8 @@ async function testHTTPTransport() {
 async function testWebSocketTransport() {
   const client = new TeraTraceClient({
     service: 'integration-ws',
-    transport: 'ws'
+    transport: 'ws',
+    autoReconnect: false
   });
 
   try {
