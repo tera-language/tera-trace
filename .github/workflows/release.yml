@@ -53,72 +53,17 @@ jobs:
         echo "EOF" >> $GITHUB_OUTPUT
 
     - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ github.ref }}
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
         body: ${{ steps.changelog.outputs.changelog }}
         draft: false
         prerelease: false
-
-    - name: Upload Release Assets
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/teratrace-linux-amd64
-        asset_name: teratrace-linux-amd64
-        asset_content_type: application/octet-stream
-
-    - name: Upload Linux ARM64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/teratrace-linux-arm64
-        asset_name: teratrace-linux-arm64
-        asset_content_type: application/octet-stream
-
-    - name: Upload Windows AMD64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/teratrace-windows-amd64.exe
-        asset_name: teratrace-windows-amd64.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload Windows 386
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/teratrace-windows-386.exe
-        asset_name: teratrace-windows-386.exe
-        asset_content_type: application/octet-stream
-
-    - name: Upload macOS AMD64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/teratrace-darwin-amd64
-        asset_name: teratrace-darwin-amd64
-        asset_content_type: application/octet-stream
-
-    - name: Upload macOS ARM64
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./dist/teratrace-darwin-arm64
-        asset_name: teratrace-darwin-arm64
-        asset_content_type: application/octet-stream
+        files: |
+          ./dist/teratrace-linux-amd64
+          ./dist/teratrace-linux-arm64
+          ./dist/teratrace-windows-amd64.exe
+          ./dist/teratrace-windows-386.exe
+          ./dist/teratrace-darwin-amd64
+          ./dist/teratrace-darwin-arm64
