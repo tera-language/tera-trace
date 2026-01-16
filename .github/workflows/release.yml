@@ -1,0 +1,124 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24.1'
+
+    - name: Build binaries
+      run: |
+        mkdir -p dist
+        
+        # Linux
+        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/teratrace-linux-amd64 ./cmd/tera-trace
+        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/teratrace-linux-arm64 ./cmd/tera-trace
+        
+        # Windows
+        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/teratrace-windows-amd64.exe ./cmd/tera-trace
+        GOOS=windows GOARCH=386 go build -ldflags="-s -w" -o dist/teratrace-windows-386.exe ./cmd/tera-trace
+        
+        # macOS
+        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/teratrace-darwin-amd64 ./cmd/tera-trace
+        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/teratrace-darwin-arm64 ./cmd/tera-trace
+
+    - name: Generate changelog
+      id: changelog
+      run: |
+        # Extract tag name without 'v' prefix
+        TAG_NAME=${GITHUB_REF#refs/tags/v}
+        echo "tag_name=v$TAG_NAME" >> $GITHUB_OUTPUT
+        
+        # Generate simple changelog (you can enhance this with a proper changelog tool)
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "## What's Changed" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        # Add git log between this tag and previous tag
+        git log --pretty=format:"- %s (%h)" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: ${{ steps.changelog.outputs.changelog }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Assets
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/teratrace-linux-amd64
+        asset_name: teratrace-linux-amd64
+        asset_content_type: application/octet-stream
+
+    - name: Upload Linux ARM64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/teratrace-linux-arm64
+        asset_name: teratrace-linux-arm64
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows AMD64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/teratrace-windows-amd64.exe
+        asset_name: teratrace-windows-amd64.exe
+        asset_content_type: application/octet-stream
+
+    - name: Upload Windows 386
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/teratrace-windows-386.exe
+        asset_name: teratrace-windows-386.exe
+        asset_content_type: application/octet-stream
+
+    - name: Upload macOS AMD64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/teratrace-darwin-amd64
+        asset_name: teratrace-darwin-amd64
+        asset_content_type: application/octet-stream
+
+    - name: Upload macOS ARM64
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./dist/teratrace-darwin-arm64
+        asset_name: teratrace-darwin-arm64
+        asset_content_type: application/octet-stream

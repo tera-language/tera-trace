@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Documentation
+    url: https://github.com/tera-language/tera-trace/blob/main/DOCUMENTS.md
+    about: Check the documentation for answers to common questions
+  - name: Community Discussion
+    url: https://github.com/tera-language/tera-trace/discussions
+    about: Start a discussion or ask questions
+  - name: Security Issue
+    url: https://github.com/tera-language/tera-trace/security/advisories/new
+    about: Report security vulnerabilities privately

@@ -1,0 +1,182 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test-go:
+    name: Test Go Server
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24.1'
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Run go fmt check
+      run: |
+        if [ "$(gofmt -s -l . | wc -l)" -gt 0 ]; then
+          echo "The following files are not formatted:"
+          gofmt -s -l .
+          exit 1
+        fi
+
+    - name: Build
+      run: go build -o teratrace ./cmd/tera-trace
+
+    - name: Test
+      run: go test -v -race -coverprofile=coverage.out ./...
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.out
+        flags: go
+
+  test-client:
+    name: Test Client Package
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'npm'
+        cache-dependency-path: tera-trace-client/package-lock.json
+
+    - name: Install dependencies
+      working-directory: tera-trace-client
+      run: npm ci
+
+    - name: Run linting
+      working-directory: tera-trace-client
+      run: npm run lint
+
+    - name: Run formatting check
+      working-directory: tera-trace-client
+      run: |
+        cd tera-trace-client
+        npm run format
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "Code is not properly formatted. Run 'npm run format' and commit the changes."
+          exit 1
+        fi
+
+    - name: Run tests
+      working-directory: tera-trace-client
+      run: npm test
+
+  integration-test:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24.1'
+
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+
+    - name: Cache Go modules
+      uses: actions/cache@v3
+      with:
+        path: ~/go/pkg/mod
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download Go dependencies
+      run: go mod download
+
+    - name: Build TeraTrace server
+      run: go build -o teratrace ./cmd/tera-trace
+
+    - name: Install Node.js dependencies
+      working-directory: package-test
+      run: npm ci
+
+    - name: Start TeraTrace server in background
+      run: |
+        ./teratrace &
+        SERVER_PID=$!
+        echo "SERVER_PID=$SERVER_PID" >> $GITHUB_ENV
+
+        # Wait for server to start
+        timeout 30 bash -c 'until curl -f http://localhost:8080 > /dev/null 2>&1; do sleep 1; done' || (echo "Server failed to start" && exit 1)
+
+    - name: Run integration tests
+      working-directory: package-test
+      run: npm run test:all
+      env:
+        CI: true
+
+    - name: Stop server
+      run: |
+        if [ ! -z "$SERVER_PID" ]; then
+          kill $SERVER_PID || true
+        fi
+      if: always()
+
+  build-binaries:
+    name: Build Release Binaries
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            name: linux-amd64
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            name: windows-amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            name: darwin-amd64
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.24.1'
+
+    - name: Build binary
+      run: |
+        mkdir -p dist
+        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o dist/teratrace-${{ matrix.name }} ./cmd/tera-trace
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: teratrace-${{ matrix.name }}
+        path: dist/teratrace-${{ matrix.name }}
