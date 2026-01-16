@@ -9,9 +9,36 @@ permissions:
   contents: write
 
 jobs:
-  release:
-    name: Create Release
-    runs-on: ubuntu-latest
+  build:
+    name: Build Release Binaries
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            output: teratrace-linux-amd64
+          - os: ubuntu-latest
+            goos: linux
+            goarch: arm64
+            output: teratrace-linux-arm64
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            output: teratrace-windows-amd64.exe
+          - os: windows-latest
+            goos: windows
+            goarch: 386
+            output: teratrace-windows-386.exe
+          - os: macos-latest
+            goos: darwin
+            goarch: amd64
+            output: teratrace-darwin-amd64
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            output: teratrace-darwin-arm64
     steps:
     - uses: actions/checkout@v4
 
@@ -20,21 +47,61 @@ jobs:
       with:
         go-version: '1.24.1'
 
-    - name: Build binaries
+    - name: Build binary
+      run: go build -ldflags="-s -w" -o dist/${{ matrix.output }} ./cmd/tera-trace
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
+
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.output }}
+        path: dist/${{ matrix.output }}
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Download all binaries
+      uses: actions/download-artifact@v4
+      with:
+        path: dist
+
+    - name: Generate changelog
+      id: changelog
       run: |
-        mkdir -p dist
+        # Extract tag name without 'v' prefix
+        TAG_NAME=${GITHUB_REF#refs/tags/v}
+        echo "tag_name=v$TAG_NAME" >> $GITHUB_OUTPUT
         
-        # Linux
-        GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/teratrace-linux-amd64 ./cmd/tera-trace
-        GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/teratrace-linux-arm64 ./cmd/tera-trace
-        
-        # Windows
-        GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/teratrace-windows-amd64.exe ./cmd/tera-trace
-        GOOS=windows GOARCH=386 go build -ldflags="-s -w" -o dist/teratrace-windows-386.exe ./cmd/tera-trace
-        
-        # macOS
-        GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/teratrace-darwin-amd64 ./cmd/tera-trace
-        GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/teratrace-darwin-arm64 ./cmd/tera-trace
+        # Generate simple changelog (you can enhance this with a proper changelog tool)
+        echo "changelog<<EOF" >> $GITHUB_OUTPUT
+        echo "## What's Changed" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        # Add git log between this tag and previous tag
+        git log --pretty=format:"- %s (%h)" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ github.ref_name }}
+        body: ${{ steps.changelog.outputs.changelog }}
+        draft: false
+        prerelease: false
+        files: |
+          ./dist/teratrace-linux-amd64
+          ./dist/teratrace-linux-arm64
+          ./dist/teratrace-windows-amd64.exe
+          ./dist/teratrace-windows-386.exe
+          ./dist/teratrace-darwin-amd64
+          ./dist/teratrace-darwin-arm64
 
     - name: Generate changelog
       id: changelog

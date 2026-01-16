@@ -1,10 +1,10 @@
 package main
 
 import (
-	"runtime"
-	"time"
 	"os"
 	"os/exec"
+	"runtime"
+	"time"
 
 	"github.com/tera-language/tera-trace/pkg/ingestion"
 	"github.com/tera-language/tera-trace/pkg/server"

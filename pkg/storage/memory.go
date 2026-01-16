@@ -7,14 +7,14 @@ import (
 )
 
 type MemoryStore struct {
-	mu       sync.RWMutex
-	logs     map[string][]*translator.LogEntry
+	mu        sync.RWMutex
+	logs      map[string][]*translator.LogEntry
 	maxPerSvc int
 }
 
 func NewMemoryStore(maxLogsPerService int) *MemoryStore {
 	return &MemoryStore{
-		logs:     make(map[string][]*translator.LogEntry),
+		logs:      make(map[string][]*translator.LogEntry),
 		maxPerSvc: maxLogsPerService,
 	}
 }

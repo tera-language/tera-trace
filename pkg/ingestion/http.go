@@ -45,7 +45,7 @@ func StartHTTPListener(addr string) {
 		broadcastLog(entry)
 
 		utils.Log(utils.LevelInfo, "INGEST", "Handled trace for service: "+entry.Service)
-		
+
 		w.WriteHeader(http.StatusOK)
 	})
 

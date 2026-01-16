@@ -9,7 +9,7 @@ const (
 	ColorPurple = "\033[38;5;99m"
 	ColorGray   = "\033[90m"
 	ColorReset  = "\033[0m"
-	
+
 	ColorRed    = "\033[38;5;197m"
 	ColorYellow = "\033[38;5;214m"
 	ColorBlue   = "\033[38;5;75m"
@@ -25,7 +25,7 @@ const (
 
 func Log(level string, component string, msg string) {
 	timestamp := time.Now().Format("15:04:05.000")
-	
+
 	var levelColor string
 	switch level {
 	case LevelError:

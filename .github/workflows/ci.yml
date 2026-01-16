@@ -76,7 +76,6 @@ jobs:
     - name: Run formatting check
       working-directory: tera-trace-client
       run: |
-        cd tera-trace-client
         npm run format
         if [ -n "$(git status --porcelain)" ]; then
           echo "Code is not properly formatted. Run 'npm run format' and commit the changes."
@@ -117,7 +116,11 @@ jobs:
     - name: Build TeraTrace server
       run: go build -o teratrace ./cmd/tera-trace
 
-    - name: Install Node.js dependencies
+    - name: Install client package dependencies
+      working-directory: tera-trace-client
+      run: npm ci
+
+    - name: Install integration test dependencies
       working-directory: package-test
       run: npm ci
 

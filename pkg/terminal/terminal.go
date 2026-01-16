@@ -2,10 +2,10 @@ package terminal
 
 import (
 	"fmt"
-	"runtime"
-	"time"
 	"os"
 	"os/exec"
+	"runtime"
+	"time"
 )
 
 const (
