@@ -176,7 +176,10 @@ jobs:
     - name: Build binary
       run: |
         mkdir -p dist
-        GOOS=${{ matrix.goos }} GOARCH=${{ matrix.goarch }} go build -ldflags="-s -w" -o dist/teratrace-${{ matrix.name }} ./cmd/tera-trace
+        go build -ldflags="-s -w" -o dist/teratrace-${{ matrix.name }} ./cmd/tera-trace
+      env:
+        GOOS: ${{ matrix.goos }}
+        GOARCH: ${{ matrix.goarch }}
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
